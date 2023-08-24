@@ -1,4 +1,4 @@
-﻿namespace BankProject.Models
+﻿namespace BankProject.Entities
 {
     public class BaseEntity
     {

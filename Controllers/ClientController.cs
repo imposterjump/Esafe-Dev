@@ -1,15 +1,23 @@
 ﻿using AutoMapper;
 using BankProject.Data;
-using BankProject.Models;
+using BankProject.Entities;
+using BankProject.Helpers;
+using BankProject.Models.Address;
+using BankProject.Models.Client.Request;
+using BankProject.Models.Client.Response;
 using BankProject.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.ServiceFabric.Actors;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
 using System.Fabric.Description;
+using System.IdentityModel.Tokens.Jwt;
 using System.IO;
+using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -17,7 +25,7 @@ namespace BankProject.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class ClientController : ControllerBase
+    public class ClientController : BaseController
     {
         private readonly AppDbContext _dbContext;
         private readonly ClientService _service;
@@ -31,12 +39,11 @@ namespace BankProject.Controllers
             _logger = logger;
         }
 
-
         [HttpGet]
         public async Task<ActionResult<ClientDisplayDto>> GetClients()
         {
             //Using Service:
-
+            Console.WriteLine("entered get clients controller");
             var data = await _service.GetAll();
             if (data == null)
             {
@@ -44,53 +51,39 @@ namespace BankProject.Controllers
             }
             _logger.LogInformation("Get clients is successful");
             return Ok(data);
-
-
-            //Using dbcontext:
-
-            //if (_dbContext.Clients == null)
-            //{
-            //    _logger.LogInformation("Clients Database does not exist");
-            //    return NotFound();
-            //}
-
-            //_logger.LogInformation("Get clients is successful");
-            //return Ok(_dbContext.Clients.Select(client => _mapper.Map<ClientDto>(client)));
-
         }
 
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Client>> GetClient(string id)
+        [Authorize(Data.Enums.Role.Client)]
+        [HttpGet("AuthorizedGet")]
+        public async Task<ActionResult> GetClientAuth()
+        {
+            try
+            {
+                var client = Client;
+                var clientDto = _service.GetClientAuth(client);
+                return Ok(clientDto);
+
+            }
+            catch(Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpGet("GetClientBy{id}")]
+        public async Task<ActionResult<List<ClientDisplayDto>>> GetClientbyID(int id)
         {
             //Using Service:
 
-            //var data =  await _service.GetClientbyID(id);
-            //if(data == null)
-            //{
-            //    return NotFound();
-            //}
-
-            //_logger.LogInformation("Get client with id = {id} is successful", id);
-            //return data;
-
-
-
-            //Using dbcontext:
-
-            if (_dbContext.Clients == null)
-            {
-                return NotFound();
-            }
-
-            var ent = await _dbContext.Clients.FindAsync(id);
-
-            if (ent == null)
+            var data = await _service.GetClientbyID(id);
+            if (data == null)
             {
                 return NotFound();
             }
 
             _logger.LogInformation("Get client with id = {id} is successful", id);
-            return ent;
+            return data;
+
         }
 
         [HttpPost("AddClient")]
@@ -98,15 +91,13 @@ namespace BankProject.Controllers
         {
             try
             {
-                var newClient = _mapper.Map<Client>(client);
-                _dbContext.Clients.Add(newClient);
-
-                await _dbContext.SaveChangesAsync();
-                //var clientResp = await _service.AddClient(client);
+                Console.WriteLine("entered client controller");
+            
+                var clientResp = await _service.AddClient(client);
 
                 _logger.LogInformation("Client added successfully");
 
-                return Created($"/client/{newClient.NationalId}", newClient);
+                return Created($"/client/{clientResp.NationalId}", clientResp);
 
             }
             catch
@@ -115,86 +106,73 @@ namespace BankProject.Controllers
             }
         }
 
-        
+        [HttpPost("Register")]
 
-        //[HttpPost("AddAddress")]
-
-        //public async Task<IActionResult> AddAddress(string id, string street, string country, string city)
-        //{
-        //    try
-        //    {
-        //        if (ClientAvail(id))
-        //        {
-        //            Address clientAddresss = new Address(street, country, city);
-        //            var client = await _dbContext.Clients.FindAsync(id);
-        //            var address = await _dbContext.Addresses.FindAsync(id);
-        //            if (address == null) { return NotFound(); }
-        //            else
-        //            {
-        //                if (client != null)
-        //                {
-        //                    address.Client = client;
-        //                }
-        //                else { return NotFound(); }
-
-        //            }
-
-        //            client.Addresses.Add(address);
-        //            await _dbContext.SaveChangesAsync();
-        //            _logger.LogInformation("Address added to client with id = {0}", id);
-        //            return Ok();
-
-        //        }
-        //        else
-        //        {
-        //            return StatusCode(500, "Client does not exist.");
-        //        }
-        //    }
-        //    catch
-        //    {
-        //        return StatusCode(500, "An error occured while adding client address");
-        //    }
-        //}
-
-        [HttpPut]
-
-        public async Task<ActionResult<Client>> UpdateClient(string id, Client client)
+        public async Task<IActionResult> Register(ClientDto client)
         {
-            if (id != client.NationalId)
-            {
-                return BadRequest();
-            }
-
-            _dbContext.Entry(client).State = EntityState.Modified;
-
             try
             {
-                await _dbContext.SaveChangesAsync();
+                _service.Register(client);
+                return Ok();
             }
-            catch (DbUpdateConcurrencyException)
+            catch
             {
-                if (!ClientAvail(id))
-                {
-                    return NotFound();
-                }
+                return StatusCode(500, "An error occured while registering");
+            }
+        }
+
+        [HttpPost("AddAddress")]
+        public async Task<ActionResult> AddAddress(int id, AddressDto address)
+        {
+            if (address != null)
+            {
+                if (ClientAvail(id) == false) { return NotFound(); }
                 else
                 {
-                    throw;
+                    var updatedClient = _service.AddAddress(id, address);
+                    if(updatedClient == null)
+                    {
+                        return StatusCode(500, "Error occured while adding address");
+                    }
+                    return Ok(updatedClient);
+
+
                 }
             }
-
-            _logger.LogInformation("Client updated successfully");
-            return Ok();
+            else
+            {
+                return StatusCode(400, "Input is empty");
+            }
+            
         }
 
-        private bool ClientAvail(string id)
+        [Authorize(Data.Enums.Role.Client)]
+        [HttpPut("UpdatePassword")]
+        public async Task<ActionResult<Client>> UpdateClient(string password, string confpassword)
         {
-            return (_dbContext.Clients?.Any(x => x.NationalId == id)).GetValueOrDefault();
+            if(!password.IsNullOrEmpty() || !confpassword.IsNullOrEmpty())
+            {
+                if(password.Length >=8 && confpassword.Length >= 8)
+                {
+                    var client = Client;
+                    await _service.UpdatePassword(password, client);
+                    _logger.LogInformation("Client Password updated successfully");
+                    return Ok("Password updated successfully");
+                }
+                return StatusCode(500, "Password and confirm password lengths invalid.");
+            }
+            return StatusCode(500, "Fields cannot be empty.");
+            
         }
+
+        private bool ClientAvail(int id)
+        {
+            return (_dbContext.Clients?.Any(x => x.Id == id)).GetValueOrDefault();
+        }
+
 
         [HttpDelete]
-
-        public async Task<ActionResult<Client>> DeleteClient(string id)
+        public async Task<ActionResult<Client>> DeleteClient(int id)
         {
             if (_dbContext.Clients == null)
             {

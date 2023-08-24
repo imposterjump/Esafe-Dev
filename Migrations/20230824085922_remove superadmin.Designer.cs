@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BankProject.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20230820072417_initial")]
-    partial class initial
+    [Migration("20230824085922_remove superadmin")]
+    partial class removesuperadmin
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -25,7 +25,7 @@ namespace BankProject.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("BankProject.Models.Address", b =>
+            modelBuilder.Entity("BankProject.Entities.Address", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -37,9 +37,8 @@ namespace BankProject.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("ClientID")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(14)");
+                    b.Property<int>("ClientID")
+                        .HasColumnType("int");
 
                     b.Property<string>("Country")
                         .IsRequired()
@@ -55,18 +54,16 @@ namespace BankProject.Migrations
                     b.ToTable("Addresses");
                 });
 
-            modelBuilder.Entity("BankProject.Models.Client", b =>
+            modelBuilder.Entity("BankProject.Entities.Admin", b =>
                 {
-                    b.Property<string>("NationalId")
-                        .HasMaxLength(14)
-                        .HasColumnType("nvarchar(14)");
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
 
-                    b.Property<DateTime>("Birthdate")
-                        .HasColumnType("datetime2");
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("ConfirmPassword")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<bool>("Blocked")
+                        .HasColumnType("bit");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -87,15 +84,23 @@ namespace BankProject.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("Role")
+                        .HasColumnType("int");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
-                    b.HasKey("NationalId");
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasMaxLength(15)
+                        .HasColumnType("nvarchar(15)");
 
-                    b.ToTable("Clients");
+                    b.HasKey("Id");
+
+                    b.ToTable("Admins");
                 });
 
-            modelBuilder.Entity("BankProject.Models.News", b =>
+            modelBuilder.Entity("BankProject.Entities.Client", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -103,31 +108,63 @@ namespace BankProject.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("AccountNo")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("Birthdate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("Blocked")
+                        .HasColumnType("bit");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("Description")
+                    b.Property<string>("Email")
                         .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Title")
+                    b.Property<string>("FirstName")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("LastName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("NationalId")
+                        .IsRequired()
+                        .HasMaxLength(14)
+                        .HasColumnType("nvarchar(14)");
+
+                    b.Property<string>("Password")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PhoneNumber")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Role")
+                        .HasColumnType("int");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasMaxLength(15)
+                        .HasColumnType("nvarchar(15)");
+
                     b.HasKey("Id");
 
-                    b.ToTable("News");
+                    b.ToTable("Clients");
                 });
 
-            modelBuilder.Entity("BankProject.Models.Address", b =>
+            modelBuilder.Entity("BankProject.Entities.Address", b =>
                 {
-                    b.HasOne("BankProject.Models.Client", "Client")
-                        .WithMany("Addresses")
+                    b.HasOne("BankProject.Entities.Client", "Client")
+                        .WithMany("ClientAddresses")
                         .HasForeignKey("ClientID")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -135,9 +172,9 @@ namespace BankProject.Migrations
                     b.Navigation("Client");
                 });
 
-            modelBuilder.Entity("BankProject.Models.Client", b =>
+            modelBuilder.Entity("BankProject.Entities.Client", b =>
                 {
-                    b.Navigation("Addresses");
+                    b.Navigation("ClientAddresses");
                 });
 #pragma warning restore 612, 618
         }

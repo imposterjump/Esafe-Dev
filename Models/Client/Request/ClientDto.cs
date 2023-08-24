@@ -1,22 +1,13 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
+using BankProject.Models.Address;
 
-namespace BankProject.Models
+namespace BankProject.Models.Client.Request
 {
-    public class Client : BaseEntity
+    public class ClientDto
     {
-        public Client()
-        {
-            Addresses = new HashSet<Address>();
-        }
-
-        [Key]
         [MaxLength(14, ErrorMessage = "National ID must be 14 numbers.")]
         [Required(ErrorMessage = "National ID is required.")]
         public string NationalId { get; set; }
-
-        public ICollection<Address> Addresses { get; set; }
-
 
         [Required(ErrorMessage = "First name is required.")]
         public string FirstName { get; set; }
@@ -28,17 +19,23 @@ namespace BankProject.Models
         [EmailAddress(ErrorMessage = "Email address is invalid.")]
         public string Email { get; set; }
 
-        [Required(ErrorMessage = "Password is required.")]
-        [MinLength(8, ErrorMessage = "Password should be atleast 8 characters.")]
-        public string Password { get; set; }
+        [Phone(ErrorMessage = "Phone Number is invalid.")]
+        public string PhoneNumber { get; set; }
 
-        [Required(ErrorMessage = "Password confirmation is required.")]
+        [MaxLength(15, ErrorMessage = "Username should not exceed 15 characters")]
+        [MinLength(6, ErrorMessage = "Username should be atleat 6 characters")]
+        public string Username { get; set; }
+
+        [MinLength(8, ErrorMessage = "Password should be atleast 8 characters.")]
+
+        public string? Password { get; set; }
+
         [Compare("Password", ErrorMessage = "Passwords do not match.")]
-        public string ConfirmPassword { get; set; }
+        public string? ConfirmPassword { get; set; }
 
         [Required(ErrorMessage = "Birthdate is required.")]
         public DateTime Birthdate { get; set; }
-
+        public List<AddressDto>? ClientAddresses { get; set; } = new List<AddressDto>();
 
     }
 }

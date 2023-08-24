@@ -1,4 +1,4 @@
-﻿using BankProject.Models;
+﻿using BankProject.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace BankProject.Data
@@ -12,16 +12,16 @@ namespace BankProject.Data
 
         public DbSet<Client> Clients { get; set; }
         public DbSet<Address> Addresses { get; set; }
-        public DbSet<News> News { get; set; }
+        public DbSet<Admin> Admins { get; set; }
+      
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<Address>()
                 .HasOne(e => e.Client)
-                .WithMany(e => e.Addresses)
+                .WithMany(e => e.ClientAddresses)
                 .HasForeignKey(e => e.ClientID);
         }
-
         
     }
 }

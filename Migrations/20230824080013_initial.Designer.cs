@@ -4,6 +4,7 @@ using BankProject.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BankProject.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20230824080013_initial")]
+    partial class initial
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -65,6 +68,10 @@ namespace BankProject.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("Discriminator")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -95,6 +102,10 @@ namespace BankProject.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Admins");
+
+                    b.HasDiscriminator<string>("Discriminator").HasValue("Admin");
+
+                    b.UseTphMappingStrategy();
                 });
 
             modelBuilder.Entity("BankProject.Entities.Client", b =>
@@ -156,6 +167,16 @@ namespace BankProject.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Clients");
+                });
+
+            modelBuilder.Entity("BankProject.Entities.SuperAdmin", b =>
+                {
+                    b.HasBaseType("BankProject.Entities.Admin");
+
+                    b.Property<int>("Administration_Key")
+                        .HasColumnType("int");
+
+                    b.HasDiscriminator().HasValue("SuperAdmin");
                 });
 
             modelBuilder.Entity("BankProject.Entities.Address", b =>

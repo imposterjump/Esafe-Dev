@@ -1,8 +1,9 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using BankProject.Entities;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Runtime.Serialization;
 
-namespace BankProject.Models
+namespace BankProject.Entities
 {
     public class Address
     {
@@ -10,7 +11,7 @@ namespace BankProject.Models
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int Id { get; set; }
-        public string ClientID { get; set; }
+        public int ClientID { get; set; }
 
         [IgnoreDataMember]
         public Client? Client { get; set; }
@@ -26,7 +27,7 @@ namespace BankProject.Models
 
         public Address(string street, string country, string city)
         {
-            if(street != null)
+            if (street != null)
             {
                 this.Street = street;
             }
